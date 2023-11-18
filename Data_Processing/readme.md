@@ -63,5 +63,5 @@ And the result of a processed data would look something like this
 半	E-VV
 ```
 
-Where S represents a single chunk, B, E, I represent beginning, end
+Where S represents a single chunk, B, E, I represents beginning, end
 and middle of a chunk. 
