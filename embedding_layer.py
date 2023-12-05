@@ -151,3 +151,4 @@ def main():
     model = load_model('bert-base-chinese')
     embeddings = get_bert_embeddings(model, input_ids, attention_masks)
     return embeddings
+
