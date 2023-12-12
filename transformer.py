@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from embedding_layer import *
+
 
 def attention(query, key, value, mask=None, dropout=None):
     "Compute 'Scaled Dot Product Attention'"
@@ -19,6 +21,11 @@ def attention(query, key, value, mask=None, dropout=None):
     return torch.matmul(p_attn, value), p_attn
 
 
+def clones(module, N):
+    """Produce N identical layers."""
+    return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+
+
 class MultiHeadAttention(nn.Module):
     """
     Implementation based on Attention is All You Need section 3.2.2
@@ -29,7 +36,8 @@ class MultiHeadAttention(nn.Module):
     h: head, = 8 by paper
     d_model: dimension of the model
     """
-    def __init__(self, d_model: int, h: int = 8, dropout = 0.1):
+
+    def __init__(self, d_model: int, h: int = 8, dropout: float = 0.1):
         super(MultiHeadAttention, self).__init__()
         self.h = h
         # d_k = d_model / h = 64 (on paper)
@@ -54,7 +62,7 @@ class MultiHeadAttention(nn.Module):
             mask = mask.unsqueeze(1)
 
         batch_size = q.size(0)
-        len_q = q.size(1)   # = 1 for MCCWS
+        len_q = q.size(1)  # = 1 for MCCWS
         len_k = k.size(1)
         len_v = v.size(1)
         # head_i = Attention(QW_q, KW_k, VW_v)
@@ -74,6 +82,24 @@ class MultiHeadAttention(nn.Module):
         return self.w_o(q)
 
 
+class PositionwiseFeedForward(nn.Module):
+    """
+    See section 3.3 in Attention is All You Need Paper
+    FFN(x) = max(0, xW1 + b1 )W2 + b2
+
+    d_model: dimension of model
+    d_ff: dimension of feed-forward layers
+    """
+    def __init__(self, d_model: int, d_ff: int, dropout: float = 0.1):
+        super(PositionwiseFeedForward, self).__init__()
+        self.w_1 = nn.Linear(d_model, d_ff)
+        self.w_2 = nn.Linear(d_ff, d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        return self.w_2(self.dropout(nn.functional.relu(self.w_1(x))))
+
+
 class LayerNorm(nn.Module):
     """Construct a layernorm module (See citation for details)."""
 
@@ -88,24 +114,6 @@ class LayerNorm(nn.Module):
         mean = x.mean(-1, keepdim=True)
         std = x.std(-1, keepdim=True)
         return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
-
-
-class PositionwiseFeedForward(nn.Module):
-    """Position-wise Feed-Forward Networks, See Section 3.3 of AttnAllYouNeed"""
-
-    def __init__(self, d_model, d_ff, dropout=0.1):
-        super(PositionwiseFeedForward, self).__init__()
-        self.w_1 = nn.Linear(d_model, d_ff)
-        self.w_2 = nn.Linear(d_ff, d_model)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        return self.w_2(self.dropout(F.relu(self.w_1(x))))
-
-
-def clones(module, N):
-    """Produce N identical layers."""
-    return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
 
 class SublayerConnection(nn.Module):
