@@ -52,10 +52,10 @@ And the result of a processed data would look something like this
 ```
 洲	S-NN
 冠	B-NN
-军	I-NN
+军	M-NN
 杯	E-NN
 小	B-NN
-组	I-NN
+组	M-NN
 赛	E-NN
 已	B-AD
 经	E-AD
@@ -63,5 +63,5 @@ And the result of a processed data would look something like this
 半	E-VV
 ```
 
-Where S represents a single chunk, B, E, I represents beginning, end
+Where S represents a single chunk, B, E, M represents beginning, end
 and middle of a chunk. 

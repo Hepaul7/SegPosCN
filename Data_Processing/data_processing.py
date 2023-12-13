@@ -128,7 +128,7 @@ class CTB7(object):
                         else:
                             prefix = ['B']
                             for i in range(len(word) - 2):
-                                prefix.append('I')
+                                prefix.append('M')
                             prefix.append('E')
                         assert len(prefix) == len(word)
                         for char, pre in zip(word, prefix):
@@ -305,7 +305,7 @@ class CTB9(object):
                         else:
                             prefix = ['B']
                             for i in range(len(word) - 2):
-                                prefix.append('I')
+                                prefix.append('M')
                             prefix.append('E')
                         assert len(prefix) == len(word)
                         for char, pre in zip(word, prefix):
