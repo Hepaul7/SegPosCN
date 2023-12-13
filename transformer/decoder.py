@@ -27,3 +27,13 @@ class Decoder(nn.Module):
             x = layer(x, memory, tgt_mask, src_mask)
 
         return self.norm(x)
+
+
+def make_decoder(N=6, d_model=768, d_ff=2048, h=8, dropout=0.1):
+    c = copy.deepcopy
+    self_attn = MultiHeadAttention(h=h, d_model=d_model)
+    src_attn = MultiHeadAttention(h=h, d_model=d_model)
+    ff = PositionwiseFeedForward(d_model, d_ff, dropout)
+    layer = DecoderLayer(d_model, c(self_attn), c(src_attn), c(ff), dropout)
+    return Decoder(layer, N)
+
