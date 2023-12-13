@@ -1,4 +1,4 @@
-from layers import *
+from transformer.layers import *
 
 
 class Encoder(nn.Module):
