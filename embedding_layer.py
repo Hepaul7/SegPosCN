@@ -150,5 +150,7 @@ def main():
 
     model = load_model('bert-base-chinese')
     embeddings = get_bert_embeddings(model, input_ids, attention_masks)
+    p_e = PositionalEncoder(d_model=768, drop_out=0.1)
+    embeddings = p_e(embeddings)
     return embeddings
 
