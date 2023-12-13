@@ -55,14 +55,14 @@ class MultiHeadAttention(nn.Module):
 
     def forward(self, q, k, v, mask=None):
         """
-        See citation on paper for details
+        Forward, based on paper
         """
         # for head axis broadcasting
         if mask is not None:
             mask = mask.unsqueeze(1)
 
         batch_size = q.size(0)
-        len_q = q.size(1)  # = 1 for MCCWS
+        len_q = q.size(1)
         len_k = k.size(1)
         len_v = v.size(1)
         # head_i = Attention(QW_q, KW_k, VW_v)
@@ -99,6 +99,8 @@ class PositionwiseFeedForward(nn.Module):
     def forward(self, x):
         return self.w_2(self.dropout(nn.functional.relu(self.w_1(x))))
 
+
+####### TODO: Either adapt the following to my own or cite it.
 
 class LayerNorm(nn.Module):
     """Construct a layernorm module (See citation for details)."""
