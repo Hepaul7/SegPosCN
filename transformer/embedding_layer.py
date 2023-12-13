@@ -3,11 +3,9 @@ Embeddings layer
 """
 import torch
 from transformers import BertTokenizer, BertModel
-from typing import List, Union
+from typing import List
 
 import csv
-import torch.nn as nn
-import math
 
 BERT_MODEL_NAME = 'bert-base-chinese'
 
@@ -103,54 +101,57 @@ def get_bert_embeddings(model, input_ids, attention_masks):
 
 
 # Note to self, perhaps adapt MCCWS 3 embeddings?
-class PositionalEncoder(nn.Module):
-    """
-    Since transformer models contain no recurrence or convolution, we need
-    to inject some information about relative or absolute position of the
-    sequence (Vaswani et al. 2017)
+# class PositionalEncoder(nn.Module):
+#     """
+#     I DONT NEED THIS BERT EMBEDDINGS ALREADY HAVE POSITIONAL INFORMATION AGHGHrhgRHJGJHFG
+#
+#     Since transformer models contain no recurrence or convolution, we need
+#     to inject some information about relative or absolute position of the
+#     sequence (Vaswani et al. 2017)
+#
+#     Add positional encodings to the input embeddings before the encoder
+#     layer.
+#
+#     Implementation of this class is based on section 3.5 of Attention is
+#     all you need (Vaswani et al. 2017)
+#     """
+#     def __init__(self, d_model: int, drop_out: float, max_len: int = 5000):
+#         """
+#         :param d_model: dimension of the model, if BERT it would be 768
+#         :param drop_out: drop out rate
+#         :param max_len: max length
+#         """
+#         super(PositionalEncoder, self).__init__()
+#         self.dropout = nn.Dropout(p=drop_out)
+#
+#         pe = torch.zeros(max_len, d_model).float()
+#         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+#         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+#         # Apply sine function to even indices (pos, 2i)
+#         pe[:, 0::2] = torch.sin(position * div_term)
+#         # Apply cosine function to odd indices (pos, 2i + 1)
+#         pe[:, 1::2] = torch.cos(position * div_term)
+#
+#         # For batch processing
+#         pe = pe.unsqueeze(0)
+#
+#         self.register_buffer('pe', pe)
+#
+#     def forward(self, x: torch.tensor):
+#         x += self.pe[:, x.size(0), :]
+#         return self.dropout(x)
+#
+#
 
-    Add positional encodings to the input embeddings before the encoder
-    layer.
-
-    Implementation of this class is based on section 3.5 of Attention is
-    all you need (Vaswani et al. 2017)
-    """
-    def __init__(self, d_model: int, drop_out: float, max_len: int = 5000):
-        """
-        :param d_model: dimension of the model, if BERT it would be 768
-        :param drop_out: drop out rate
-        :param max_len: max length
-        """
-        super(PositionalEncoder, self).__init__()
-        self.dropout = nn.Dropout(p=drop_out)
-
-        pe = torch.zeros(max_len, d_model).float()
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        # Apply sine function to even indices (pos, 2i)
-        pe[:, 0::2] = torch.sin(position * div_term)
-        # Apply cosine function to odd indices (pos, 2i + 1)
-        pe[:, 1::2] = torch.cos(position * div_term)
-
-        # For batch processing
-        pe = pe.unsqueeze(0)
-
-        self.register_buffer('pe', pe)
-
-    def forward(self, x: torch.tensor):
-        x += self.pe[:, x.size(0), :]
-        return self.dropout(x)
-
-
-def main():
-    data = read_csv('data/CTB7/dev.tsv')
-    texts = extract_sentences(data)
-    bert_tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
-    input_ids, attention_masks = prepare(texts, bert_tokenizer)
-
-    model = load_model('bert-base-chinese')
-    embeddings = get_bert_embeddings(model, input_ids, attention_masks)
-    p_e = PositionalEncoder(d_model=768, drop_out=0.1)
-    embeddings = p_e(embeddings)
-    return embeddings
+# def main():
+#     data = read_csv('data/CTB7/dev.tsv')
+#     texts = extract_sentences(data)
+#     bert_tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
+#     input_ids, attention_masks = prepare(texts, bert_tokenizer)
+#
+#     model = load_model('bert-base-chinese')
+#     embeddings = get_bert_embeddings(model, input_ids, attention_masks)
+#     p_e = PositionalEncoder(d_model=768, drop_out=0.1)
+#     embeddings = p_e(embeddings)
+#     return embeddings
 

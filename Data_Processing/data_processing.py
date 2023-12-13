@@ -170,7 +170,7 @@ class CTB7(object):
 class CTB9(object):
     # Data split follows https://www.aclweb.org/anthology/I17-1018/ (Table 10)
     def __init__(self):
-        self.input_dir = './LDC2016T13/data//postagged'
+        self.input_dir = './LDC2016T13/data/postagged'
 
         if not path.exists('./LDC2016T13'):
             raise FileNotFoundError('CTB9 not found!')
