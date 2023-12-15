@@ -83,7 +83,7 @@ def extract_labels(data: List[List[str]]) -> (List[List[str]], int):
         if len(ls) > 0:
             curr.append(ls[1])
             continue
-        if curr != '':
+        if curr:
             tags.append(curr)
             if len(curr) > max_len:
                 max_len = len(curr)
@@ -104,7 +104,6 @@ def prepare_data(data: List[List[str]], max_len: int) -> List[List[str]]:
         while len(sentence) < max_len:
             sentence.append(PAD_WORD)
     return data
-
 
 
 def extract_characters_from_text(text: str) -> List[str]:
