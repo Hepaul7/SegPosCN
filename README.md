@@ -4,4 +4,4 @@ Under Transformers, You can find all code relating to the transformer based on t
 TODO:
 - Train Models (Write Train, Eval Code, Run it on CTB7 first)
 - If Good, Then do for all datasets, otherwise, Debug, Fix Model, Repeat
-
+- Add citations for some parts of the code (eg. process data, layernorm) 
