@@ -1,3 +1,3 @@
-PAD_WORD = '[CLS]'
-BOS_WORD = '[SEP]'
-EOS_WORD = '[PAD]'
+PAD_WORD = '[PAD]'
+BOS_WORD = '[CLS]'
+EOS_WORD = '[SEP]'
