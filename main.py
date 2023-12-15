@@ -1,22 +1,33 @@
-from embedding_layer import *
-from encoding_layer import *
-from decoding_layer import *
-#
-#
+from transformer.embedding_layer import *
+from transformer.encoder import make_encoder
+from transformer.decoder import make_decoder
+
 print('running CTB7...\n')
-# # data = read_csv('data/CTB7/dev.tsv')
-# # texts = extract_sentences(data)
-# # bert_tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
-# # input_ids, attention_masks = prepare(texts, bert_tokenizer)
-# #
-# # model = load_model('bert-base-chinese')
-# # print('embedding CTB7...\n')
-# # embeddings = get_bert_embeddings(model, input_ids, attention_masks)
+data = read_csv('data/CTB7/dev.tsv')
+texts, max_len = extract_sentences(data)
+labels, max_len_2 = extract_labels(data)
+
+assert max_len == max_len_2
+
+# prep_text = prepare_data(texts, max_len)
+# prep_label = prepare_data(labels, max_len)
+
+bert_tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
+
+input_ids, attention_masks = prepare(texts, bert_tokenizer, max_len)
+# input_ids, attention_masks = prepare(texts, bert_tokenizer)
+
+model = load_model('bert-base-chinese')
+# input_embeddings = get_bert_embeddings(model, input_ids, attention_masks)
+
+# input_ids, attention_masks = prepare(labels, bert_tokenizer)
 # #
 # # encoder = Encoder()
 # # encoder_output = encoder()
 #
 #
-# # Test Run
-#
-# # sample sentence
+
+# Test Run to make sure bug free
+# sample sentence
+
+

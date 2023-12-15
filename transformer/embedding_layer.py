@@ -106,43 +106,30 @@ def prepare_data(data: List[List[str]], max_len: int) -> List[List[str]]:
     return data
 
 
-def extract_characters_from_text(text: str) -> List[str]:
-    """ Break down sentences into individual characters from text
-    :param text: string of texts
-    :return: List of characters
-    """
-    return [char for char in text]
-
-
-def prepare(texts: List[str], tokenizer: BertTokenizer) -> [torch.Tensor, torch.Tensor]:
+def prepare(data: List[List[str]], tokenizer: BertTokenizer, max_length: int) -> [torch.Tensor, torch.Tensor]:
     """ Prepare texts into a form that can be fed into a
     pretrained transformer (Chinese-BERT)
-    :param texts: List of strings, where each string is a Chinese sentence
+    :param data: List of strings, where each string is a Chinese sentence
     :param tokenizer: Tokenizer
+    :param max_length: max length of sentence within batch
     :return: input_ids: tokenized representation of text,
              attention_masks: tensors of 1s and 0s
     """
-    input_ids = []
-    attention_masks = []
+    joined_sentences = [''.join(sentence) for sentence in data]
 
-    for text in texts:
-        char_tokens = extract_characters_from_text(text)
-        encoded_dict = tokenizer.encode_plus(
-            char_tokens,
-            add_special_tokens=True,
-            max_length=64,
-            truncation=True,
-            pad_to_max_length=True,
-            return_attention_mask=True,
-            return_tensors='pt',
-            is_split_into_words=False
-        )
+    encoding = tokenizer(
+        joined_sentences,
+        add_special_tokens=True,
+        max_length=max_length,
+        truncation=True,
+        padding='max_length',
+        return_attention_mask=True,
+        return_tensors='pt',
+    )
 
-        input_ids.append(encoded_dict['input_ids'])
-        attention_masks.append(encoded_dict['attention_mask'])
-
-    input_ids = torch.cat(input_ids, dim=0)
-    attention_masks = torch.cat(attention_masks, dim=0)
+    # Extract input_ids and attention_masks
+    input_ids = encoding['input_ids']
+    attention_masks = encoding['attention_mask']
 
     return input_ids, attention_masks
 
