@@ -1,3 +1,3 @@
-PAD_WORD = '<blank>'
-BOS_WORD = '<s>'
-EOS_WORD = '</s>'
+PAD_WORD = '[CLS]'
+BOS_WORD = '[SEP]'
+EOS_WORD = '[PAD]'
