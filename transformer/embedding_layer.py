@@ -4,6 +4,7 @@ Embeddings layer
 import torch
 from transformers import BertTokenizer, BertModel
 from typing import List
+from constants import *
 
 import csv
 
@@ -29,22 +30,81 @@ def read_csv(path: str) -> List[List[str]]:
     return data
 
 
-def extract_sentences(data: List[List[str]]) -> List[str]:
+# def extract_sentences(data: List[List[str]]) -> (List[str], int):
+#     """ Breaks down some text into individual sentence
+#     :param data: List of lists containing character and a label
+#     :return: List of strings, where each string is a Chinese sentence
+#     """
+#     sentences = []
+#     curr = ''
+#     max_len = 0
+#     for ls in data:
+#         if len(ls) > 0:
+#             curr += ls[0]
+#             continue
+#         if curr != '':
+#             sentences.append(curr)
+#             if len(curr) > max_len:
+#                 max_len = len(curr)
+#             curr = ''
+#
+#     return sentences, max_len
+
+def extract_sentences(data: List[List[str]]) -> (List[List[str]], int):
     """ Breaks down some text into individual sentence
     :param data: List of lists containing character and a label
     :return: List of strings, where each string is a Chinese sentence
     """
     sentences = []
-    curr = ''
+    curr = []
+    max_len = 0
     for ls in data:
         if len(ls) > 0:
-            curr += ls[0]
+            curr.append(ls[0])
+            continue
+        if curr:
+            sentences.append(curr)
+            if len(curr) > max_len:
+                max_len = len(curr)
+            curr = []
+
+    return sentences, max_len
+
+
+def extract_labels(data: List[List[str]]) -> (List[List[str]], int):
+    """ Breaks down some text into their tags
+    :param data:
+    :return: List of tags
+    """
+    tags = []
+    curr = []
+    max_len = 0
+    for ls in data:
+        if len(ls) > 0:
+            curr.append(ls[1])
             continue
         if curr != '':
-            sentences.append(curr)
-            curr = ''
+            tags.append(curr)
+            if len(curr) > max_len:
+                max_len = len(curr)
+            curr = []
+    return tags, max_len
 
-    return sentences
+
+def prepare_data(data: List[List[str]], max_len: int) -> List[List[str]]:
+    """
+    Add padding, BOS, EOS
+    :param data:
+    :param max_len:
+    :return:
+    """
+    for sentence in data:
+        sentence.insert(0, BOS_WORD)
+        sentence.append(EOS_WORD)
+        while len(sentence) < max_len:
+            sentence.append(PAD_WORD)
+    return data
+
 
 
 def extract_characters_from_text(text: str) -> List[str]:
