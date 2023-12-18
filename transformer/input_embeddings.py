@@ -76,13 +76,13 @@ def extract_sentences(data: List[List[str]]) -> (List[str], List[List[str]], int
         if curr != '':
             if len(curr) > max_len:
                 max_len = len(curr)
-                print(max_len)
+                # print(max_len)
             sentences.append(curr)
             tags.append(curr_out)
             total_len += len(curr)
             curr = ''
             curr_out = []
-    print(f'avg_len: {total_len // len(sentences)}')
+    # print(f'avg_len: {total_len // len(sentences)}')
     return sentences, tags, max_len
 
 

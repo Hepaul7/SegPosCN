@@ -1,17 +1,4 @@
-from transformers import AdamW
-
-from transformer.input_embeddings import *
-from transformer.encoder import make_encoder
-from transformer.decoder import make_decoder
-from models import CWSPOSTransformer
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import CrossEntropyLoss
-
-from torch.utils.data import DataLoader, TensorDataset
-from transformer.output_embeddings import get_output_embeddings
+from training import *
 
 #####
 # This file is for testing (for now)
@@ -25,7 +12,7 @@ bert_tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
 
 input_ids, attention_masks = prepare(texts, bert_tokenizer, 64)  # includes BOS/EOS
 output_ids, output_masks = prepare_outputs(tags, 64)  # includes BOS/EOS
-model = load_model('bert-base-chinese')
+bert_model = load_model('bert-base-chinese')
 
 # input_embeddings = get_bert_embeddings(model, input_ids, attention_masks)
 # output_embeddings = get_bert_embeddings(model, decoder_input_ids, decoder_attention_mask)
@@ -35,34 +22,28 @@ segpos_model = CWSPOSTransformer(encoder, decoder, output_size=33 * 4 + 2, d_mod
 
 # change to embeddings later
 dataset = TensorDataset(input_ids, attention_masks, output_ids, output_masks)
-dataloader = DataLoader(dataset, batch_size=33, shuffle=False)
+dataloader = DataLoader(dataset, batch_size=1000000, shuffle=False)
 
-num_epochs = 1
+num_epochs = 100
 optimizer = AdamW(segpos_model.parameters(), lr=5e-5)
 loss_function = CrossEntropyLoss()
 
-for epoch in range(num_epochs):
-    print(epoch)
-    segpos_model.train()
-    total_loss = 0
-    for batch in dataloader:
-        batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
-        input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
-        # print(input_embeddings.shape, batch_attention_masks.shape)
-        output_embeddings = get_output_embeddings(batch_output_ids)
-        # print(output_embeddings.shape, batch_output_masks.shape)
-        # print(input_embeddings.shape)
-        predictions = segpos_model(input_embeddings, batch_attention_masks, output_embeddings, batch_output_masks)
-
-        loss = loss_function(predictions.view(-1, 33 * 4 + 2), batch_output_ids.view(-1))
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item()
-
-# evaluate model
 # load eval set
 eval_set = read_csv('data/CTB7/dev.tsv')
+
+eval_texts, eval_tags, _ = extract_sentences(eval_set)
+eval_input_ids, eval_attention_masks = prepare(eval_texts, bert_tokenizer, 64)
+eval_output_ids, eval_output_masks = prepare_outputs(eval_tags, 64)
+eval_dataset = TensorDataset(eval_input_ids, eval_attention_masks, eval_output_ids, eval_output_masks)
+eval_dataloader = DataLoader(eval_dataset, batch_size=40000, shuffle=False)
+
+
+for epoch in range(num_epochs):
+    avg_train_loss = train_epoch(segpos_model, bert_model, dataloader, loss_function, optimizer)
+    print(f"Epoch {epoch+1} Training Loss: {avg_train_loss}")
+
+    # Evaluate after each epoch
+    avg_eval_loss, accuracy, f1 = evaluate_model(segpos_model, bert_model, eval_dataloader, loss_function)
+    print(f"Epoch {epoch+1} Evaluation Metrics:\n Loss: {avg_eval_loss}, Accuracy: {accuracy}, F1 Score: {f1}")
+
 
