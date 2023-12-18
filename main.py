@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 
 from torch.utils.data import DataLoader, TensorDataset
+from transformer.output_embeddings import get_output_embeddings
 
 #####
 # This file is for testing (for now)
@@ -34,22 +35,24 @@ segpos_model = CWSPOSTransformer(encoder, decoder, output_size=33 * 4 + 2, d_mod
 
 # change to embeddings later
 dataset = TensorDataset(input_ids, attention_masks, output_ids, output_masks)
-dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
+dataloader = DataLoader(dataset, batch_size=33, shuffle=False)
 
-num_epochs = 5
+num_epochs = 1
 optimizer = AdamW(segpos_model.parameters(), lr=5e-5)
 loss_function = CrossEntropyLoss()
 
 for epoch in range(num_epochs):
+    print(epoch)
     segpos_model.train()
     total_loss = 0
     for batch in dataloader:
         batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
-
         input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
-
-        print(input_embeddings.shape)
-        predictions = segpos_model(input_embeddings, batch_attention_masks, batch_output_ids, batch_output_masks)
+        # print(input_embeddings.shape, batch_attention_masks.shape)
+        output_embeddings = get_output_embeddings(batch_output_ids)
+        # print(output_embeddings.shape, batch_output_masks.shape)
+        # print(input_embeddings.shape)
+        predictions = segpos_model(input_embeddings, batch_attention_masks, output_embeddings, batch_output_masks)
 
         loss = loss_function(predictions.view(-1, 33 * 4 + 2), batch_output_ids.view(-1))
 
@@ -58,4 +61,8 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         total_loss += loss.item()
+
+# evaluate model
+# load eval set
+eval_set = read_csv('data/CTB7/dev.tsv')
 

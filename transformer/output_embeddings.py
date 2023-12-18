@@ -51,3 +51,15 @@ class PositionalEncoder(nn.Module):
         x += self.pe[:, x.size(0), :]
         return self.dropout(x)
 
+
+def get_output_embeddings(output_tensor: torch.tensor) -> torch.tensor:
+    """
+
+    :param output_tensor: size batch size x max_length in batch
+    :return: embeddings size batch size x max_length x embedding dimension
+    """
+    output_embedder = OutputEmbedder(768, 768)
+    # p_e = PositionalEncoder(768, drop_out=0.1, max_len=64)
+    output_embeddings = output_embedder(output_tensor)
+    return output_embeddings
+

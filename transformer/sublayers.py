@@ -7,9 +7,11 @@ import torch.nn.functional as F
 
 
 def attention(query, key, value, mask=None, dropout=None):
-    """Compute 'Scaled Dot Product Attention' """
+    """Compute 'Scaled Dot Product Attention'
+    Ryan said the notation on the paper softmax(QK^T)V is bad"""
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
+    # print(mask.shape, scores.shape)
     if mask is not None:
         # print(scores.size(),mask.size())
         scores = scores.masked_fill(mask == 0, -1e9)
@@ -51,7 +53,9 @@ class MultiHeadAttention(nn.Module):
         Forward, based on paper
         """
         # for head axis broadcasting
+        # print(mask.shape)
         if mask is not None:
+            # print(mask.shape)
             mask = mask.unsqueeze(1)
 
         batch_size = q.size(0)

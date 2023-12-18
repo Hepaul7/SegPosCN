@@ -17,8 +17,8 @@ POS_tags = [
 ]
 
 BMES_tags = ["B", "M", "E", "S"]
-BOS = -1
-EOS = -2
+BOS = 98
+EOS = 99
 
 tag_to_id = {}
 id_to_tag = {}
@@ -131,8 +131,8 @@ def prepare_outputs(tags, max_len):
     :param max_len:
     :return:
     """
-    outputs = torch.zeros(len(tags), max_len, dtype=torch.int)
-    mask = torch.zeros(len(tags), max_len, dtype=torch.int)
+    outputs = torch.zeros(len(tags), max_len, dtype=torch.long)
+    mask = torch.zeros(len(tags), max_len, dtype=torch.long)
     for x in range(len(tags)):
         if len(tags[x]) > 62:
             continue

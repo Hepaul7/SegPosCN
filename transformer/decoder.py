@@ -7,6 +7,7 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, layer: DecoderLayer, N: int):
+        # print(N)
         super(Decoder, self).__init__()
         self.layers = clones(layer, N)
         self.norm = LayerNorm(layer.size)
@@ -22,14 +23,18 @@ class Decoder(nn.Module):
         :param tgt_mask: The mask for the target sequence.
         :return: torch.Tensor: The output of the decoder.
         """
+        assert src_mask.shape == tgt_mask.shape if src_mask is not None and tgt_mask is not None else True
+        # print(f'output shape: {x.shape}, encoder_output shape: {memory.shape} ')
 
+        tgt_mask = tgt_mask.byte().unsqueeze(-2)
+        src_mask = src_mask.byte().unsqueeze(-2)
         for layer in self.layers:
-            x = layer(x, memory, tgt_mask, src_mask)
-
+            # print(f'x shape {x.shape}, memory shape {memory.shape}')
+            x = layer(x, memory, src_mask, tgt_mask)
         return self.norm(x)
 
 
-def make_decoder(N=6, d_model=768, d_ff=2048, h=8, dropout=0.1):
+def make_decoder(N=12, d_model=768, d_ff=3072, h=12, dropout=0.1):
     c = copy.deepcopy
     self_attn = MultiHeadAttention(h=h, d_model=d_model)
     src_attn = MultiHeadAttention(h=h, d_model=d_model)
