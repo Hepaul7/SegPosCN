@@ -19,7 +19,7 @@ class Encoder(nn.Module):
         self.layers = clones(layer, N)
         self.norm = LayerNorm(layer.size)
 
-    def forward(self, x,  mask):
+    def forward(self, x, mask):
         """
         Pass the input through each layer in turn.
         """

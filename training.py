@@ -1,6 +1,6 @@
 from transformers import AdamW
 
-from transformer.input_embeddings import *
+from transformer.embeddings import *
 from transformer.encoder import make_encoder
 from transformer.decoder import make_decoder
 from models import CWSPOSTransformer

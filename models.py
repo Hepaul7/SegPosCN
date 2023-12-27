@@ -1,5 +1,5 @@
 import torch.nn as nn
-from transformer.input_embeddings import *
+from transformer.embeddings import *
 from transformer.encoder import Encoder
 from transformer.decoder import Decoder
 
@@ -21,7 +21,7 @@ class CWSPOSTransformer(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
-        # Output layer -> 33 x 4
+        # Output layer -> 33 x 4 + 3 (OUTPUTSIZE)
         self.output = nn.Linear(d_model, output_size)
 
     def forward(self, input_embeddings, attention_mask, output_embeddings, decoder_attention_mask):
