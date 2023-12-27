@@ -143,7 +143,7 @@ def prepare(texts: List[str], tokenizer: BertTokenizer, max_len: int) -> [torch.
     input_ids = torch.cat(input_ids, dim=0)
     attention_masks = torch.cat(attention_masks, dim=0)
     print(f'oov rate: {oov / total_len} oov: {oov}, total: {total_len}')
-    print(vocab)
+    # print(vocab)
     print(input_ids[0], attention_masks[0])
     return input_ids, attention_masks
 
@@ -166,7 +166,7 @@ def prepare_outputs(tags, max_len):
         for y in range(max_len):
             if y < len(tags[x]):
                 outputs[x][y + 1], mask[x][y + 1] = tag_to_id[tags[x][y]], 1
-    print(outputs[0], mask[0])
+    print('x', outputs[0], mask[0])
     return outputs, mask
 
 

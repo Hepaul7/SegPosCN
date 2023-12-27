@@ -81,41 +81,37 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     total_eval_loss = 0
     all_predictions = []
     all_true_labels = []
-
     with torch.no_grad():  # No gradients needed for evaluation
+        batch_count = 1
         for batch in eval_dataloader:
             batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
             input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
             output_embeddings = get_output_embeddings(batch_output_ids)
-            print(input_embeddings[0])
-            print(output_embeddings[0])
 
             predictions = segpos_model(input_embeddings, batch_attention_masks, output_embeddings, batch_output_masks)
             loss = loss_function(predictions.view(-1, OUTPUT_SIZE), batch_output_ids.view(-1))
             total_eval_loss += loss.item()
 
-            # Flatten the predictions and true labels
-            predictions = predictions.view(-1, OUTPUT_SIZE)
-            batch_output_ids = batch_output_ids.view(-1)
-
             # Convert predictions to actual label indices
-            predicted_labels = torch.argmax(predictions, dim=1)
-
+            batch_prediction_ids = torch.zeros(batch_output_ids.shape[0], batch_output_ids.shape[1])
+            for z in range(predictions.shape[2]):
+                batch_prediction_ids = torch.max(predictions, 2).indices
+                # batch_prediction_ids[batch_prediction_ids != 0] += 103
             # Append predictions and true labels for metric calculation
-            all_predictions.extend(predicted_labels.cpu().numpy())
-            all_true_labels.extend(batch_output_ids.cpu().numpy())
+            pred = [sample for pred in batch_prediction_ids for sample in pred]
+            targ = [sample for label in batch_output_ids for sample in label]
+            all_predictions.extend(pred)
+            all_true_labels.extend(targ)
+
+            batch_acc = accuracy_score(pred, targ)
+            print(f'batch{batch_count} / {math.ceil(len(eval_dataset) / 33)} batch accuracy {batch_acc}')
 
     # Calculate average loss over all batches
     avg_eval_loss = total_eval_loss / len(eval_dataloader)
 
-    # Remove padding token label IDs for metric calculation
-    mask = [label_id < OUTPUT_SIZE for label_id in all_true_labels]  # Adjust the number based on your label range
-    all_predictions = [pred for pred, m in zip(all_predictions, mask) if m]
-    all_true_labels = [true_label for true_label, m in zip(all_true_labels, mask) if m]
-
     # Calculate accuracy and F1 score
     accuracy = accuracy_score(all_true_labels, all_predictions)
-    f1 = f1_score(all_true_labels, all_predictions, average='weighted')  # 'weighted' accounts for label imbalance
+    f1 = f1_score(all_true_labels, all_predictions, average='weighted')
 
     print(f"Evaluation Loss: {avg_eval_loss}")
     print(f"Accuracy: {accuracy}")
@@ -166,10 +162,7 @@ def train():
             # print(predictions.shape)
             # print(predictions.view(-1, OUTPUT_SIZE).shape, batch_output_ids.shape)
             # TODO: need to convert batch_output_ids into tags
-            batch_prediction_ids = torch.zeros(batch_output_ids.shape[0], batch_output_ids.shape[1])
-            for z in range(predictions.shape[2]):
-                batch_prediction_ids = torch.max(predictions, 2).indices
-                batch_prediction_ids[batch_prediction_ids != 0] += 103
+
             predictions = F.softmax(predictions)
             batch_output_probabilities = F.one_hot(batch_output_ids, num_classes=4 * 33 + 3).float()
             loss = loss_function(predictions, batch_output_probabilities)
@@ -180,7 +173,7 @@ def train():
 
             total_loss += loss.item()
             print(f'epoch: {epoch}, batch: {batch_count} / {math.ceil(len(dataset) / 35)}, total_loss: {total_loss}, avg_loss: {total_loss/batch_count}', f'batch_los: {loss.item()}')
-
+            break
         eval_epoch(segpos_model, model, loss_function, bert_tokenizer)
     return segpos_model, model
 
