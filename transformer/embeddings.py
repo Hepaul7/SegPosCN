@@ -22,7 +22,7 @@ UNK = 100
 CLS = 133
 SEP = 134
 MASK = 103
-LIMIT = 62
+LIMIT = 64
 
 tag_to_id = {}
 id_to_tag = {}
@@ -88,7 +88,7 @@ def extract_sentences(data: List[List[str]]) -> (List[str], List[List[str]], int
             if len(curr) > max_len:
                 max_len = len(curr)
                 # print(max_len)
-            if len(curr) < LIMIT:
+            if len(curr) < LIMIT and len(curr) / LIMIT >= 0.05:  # to ensure we dont have a bunch of zeros
                 sentences.append(curr)
                 tags.append(curr_out)
                 total_len += len(curr)
@@ -96,7 +96,7 @@ def extract_sentences(data: List[List[str]]) -> (List[str], List[List[str]], int
             curr = ''
             curr_out = []
     print(count_lim)
-    print(f'avg_len: {total_len // len(sentences)}') # is around 37
+    print(f'avg_len: {total_len // len(sentences)}')
     return sentences, tags, max_len
 
 
@@ -143,8 +143,7 @@ def prepare(texts: List[str], tokenizer: BertTokenizer, max_len: int) -> [torch.
     input_ids = torch.cat(input_ids, dim=0)
     attention_masks = torch.cat(attention_masks, dim=0)
     print(f'oov rate: {oov / total_len} oov: {oov}, total: {total_len}')
-    # print(vocab)
-    print(input_ids[0], attention_masks[0])
+    print(vocab)
     return input_ids, attention_masks
 
 
@@ -166,7 +165,7 @@ def prepare_outputs(tags, max_len):
         for y in range(max_len):
             if y < len(tags[x]):
                 outputs[x][y + 1], mask[x][y + 1] = tag_to_id[tags[x][y]], 1
-    print('x', outputs[0], mask[0])
+    # print('x', outputs[0], mask[0])
     return outputs, mask
 
 
