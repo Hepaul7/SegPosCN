@@ -88,7 +88,7 @@ def extract_sentences(data: List[List[str]]) -> (List[str], List[List[str]], int
             if len(curr) > max_len:
                 max_len = len(curr)
                 # print(max_len)
-            if len(curr) < LIMIT and len(curr) / LIMIT >= 0.05:  # to ensure we dont have a bunch of zeros
+            if len(curr) < LIMIT and len(curr) / LIMIT >= 0.00:  # to ensure we dont have a bunch of zeros
                 sentences.append(curr)
                 tags.append(curr_out)
                 total_len += len(curr)
@@ -131,7 +131,7 @@ def prepare(texts: List[str], tokenizer: BertTokenizer, max_len: int) -> [torch.
         encoded_dict = tokenizer.encode_plus(
             char_tokens,
             add_special_tokens=True,
-            max_length=LIMIT + 2,
+            max_length=LIMIT,
             truncation=True,
             pad_to_max_length=True,
             return_attention_mask=True,
@@ -155,10 +155,10 @@ def prepare_outputs(tags, max_len):
     :return:
     """
     # TODO, FIX FROM 0x33 to 4x33 + 3
-    outputs = torch.zeros(len(tags), LIMIT + 2, dtype=torch.long)
-    mask = torch.zeros(len(tags), LIMIT + 2, dtype=torch.long)
+    outputs = torch.zeros(len(tags), LIMIT, dtype=torch.long)
+    mask = torch.zeros(len(tags), LIMIT, dtype=torch.long)
     for x in range(len(tags)):
-        if len(tags[x]) >= LIMIT:
+        if len(tags[x]) >= LIMIT - 2:
             continue
         outputs[x][0], mask[x][0] = CLS, 1
         outputs[x][len(tags[x]) + 1], mask[x][len(tags[x]) + 1] = SEP, 1

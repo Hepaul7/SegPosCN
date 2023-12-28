@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import math
+from torch.autograd import Variable
 
 
 # draft
@@ -25,6 +26,7 @@ class PositionalEncoder(nn.Module):
     Implementation of this class is based on section 3.5 of Attention is
     all you need (Vaswani et al. 2017)
     """
+
     def __init__(self, d_model: int, drop_out: float, max_len: int = 5000):
         """
         :param d_model: dimension of the model, if BERT it would be 768
@@ -48,7 +50,7 @@ class PositionalEncoder(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x: torch.tensor):
-        x += self.pe[:, x.size(0), :]
+        x += Variable(self.pe[:, :x.size(1)], requires_grad=False)
         return self.dropout(x)
 
 
@@ -62,4 +64,3 @@ def get_output_embeddings(output_tensor: torch.tensor) -> torch.tensor:
     # p_e = PositionalEncoder(768, drop_out=0.1, max_len=64)
     output_embeddings = output_embedder(output_tensor)
     return output_embeddings
-

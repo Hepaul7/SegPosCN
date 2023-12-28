@@ -29,6 +29,7 @@ class ScheduledOptim:
         """Learning rate scheduling per step"""
         self.n_steps += 1
         lr = self.lr_mul * self._get_lr_scale()
+        print(f'n steps: {self.n_steps}, curr_lr: {lr}')
 
         for param_group in self._optimizer.param_groups:
             param_group['lr'] = lr
