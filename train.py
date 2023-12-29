@@ -21,13 +21,8 @@ OUTPUT_SIZE = 33 * 4 + 5
 
 
 def calculate_class_frequencies(labels, pad_idx):
-    # Flatten the labels tensor to a 1D array
     labels_flat = labels.view(-1)
-
-    # Filter out padding indices
     labels_non_padding = labels_flat[labels_flat != pad_idx]
-
-    # Count occurrences of each class
     class_counts = torch.bincount(labels_non_padding, minlength=OUTPUT_SIZE)
     return class_counts
 
@@ -35,7 +30,6 @@ def calculate_class_frequencies(labels, pad_idx):
 def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     with open('eval_model.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
-        # Write the header
         writer.writerow(['AvgLoss', 'Acc', 'F1'])
 
     eval_set = read_csv('data/CTB7/dev.tsv')
@@ -46,13 +40,13 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     eval_dataset = TensorDataset(eval_input_ids, eval_attention_masks, eval_output_ids, eval_output_masks)
     eval_dataloader = DataLoader(eval_dataset, batch_size=128, shuffle=True)
 
-    segpos_model.eval()  # Set the model to evaluation mode
+    segpos_model.eval()
     total_eval_loss = 0
     all_predictions = []
     all_targets = []
     all_masks = []
     batch_count = 1
-    with torch.no_grad():  # No gradients needed for evaluation
+    with torch.no_grad():
         for batch in eval_dataloader:
             batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
             input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
@@ -72,20 +66,12 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
 
             predicted_labels_flat = predicted_labels.view(-1)
             batch_output_ids_flat = batch_output_ids.view(-1)
-
-            # Create a mask for non-zero (non-padding) elements
             non_padding_mask = batch_output_ids_flat != 0
-
-            # Apply the mask to filter out padding tokens
             predicted_non_padding = predicted_labels_flat[non_padding_mask]
             targets_non_padding = batch_output_ids_flat[non_padding_mask]
-
-            # Calculate the number of correct predictions (only for non-padding tokens)
             correct_predictions = (predicted_non_padding == targets_non_padding).sum()
-
-            # Calculate accuracy
             accuracy = correct_predictions.float() / targets_non_padding.size(0)
-            # Convert to a Python number for reporting
+
             batch_acc = accuracy.item()
             all_predictions.append(predicted_labels_flat[non_padding_mask])
 
@@ -95,10 +81,8 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
             print(predicted_labels, batch_output_ids)
             print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 128)} batch accuracy {batch_acc}')
             batch_count += 1
-        # Calculate average loss over all batches
     avg_eval_loss = total_eval_loss / (len(eval_dataset) / 128)
 
-    # Remove padding token label IDs for metric calculation
     all_predictions = torch.cat(all_predictions)
     all_targets = torch.cat(all_targets)
     all_masks = torch.cat(all_masks)
@@ -119,7 +103,6 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
 def train():
     with open('model_metrics.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
-        # Write the header
         writer.writerow(['Epoch', 'Batch', 'AvgLoss', 'Loss'])
 
     print('running CTB7...\n')
