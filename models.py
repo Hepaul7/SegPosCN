@@ -39,10 +39,13 @@ class CWSPOSTransformer(nn.Module):
         """
         # embeddings for target
         assert type(output_tensor) == torch.Tensor
+        # print('decoder shape', decoder_attention_mask.shape)
+        decoder_attention_mask = decoder_attention_mask.clone()
         output_embeddings = self.tgt_embedder(output_tensor)
         output_embeddings = self.position(output_embeddings)
         # Pass embeddings through the encoder
         encoder_output = self.encoder(input_embeddings, attention_mask.float())
+        # subsequent mask applied in decoder layer
         decoder_output = self.decoder(output_embeddings, encoder_output, attention_mask, decoder_attention_mask.float())
         output = self.output(decoder_output)
 

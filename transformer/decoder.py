@@ -1,5 +1,13 @@
 from transformer.layers import *
 
+CLS = '<s>'
+def get_subsequent_mask(seq):
+    ''' For masking out the subsequent info. '''
+    len_s = seq.size(1)
+    subsequent_mask = torch.triu(torch.ones((len_s, len_s), dtype=torch.uint8), diagonal=1)
+    subsequent_mask = subsequent_mask.bool()
+    return subsequent_mask.unsqueeze(0)
+
 
 class Decoder(nn.Module):
     """
@@ -25,12 +33,12 @@ class Decoder(nn.Module):
         """
         assert src_mask.shape == tgt_mask.shape if src_mask is not None and tgt_mask is not None else True
         # print(f'output shape: {x.shape}, encoder_output shape: {memory.shape} ')
-
-        tgt_mask = tgt_mask.byte().unsqueeze(-2)
+        tgt_mask = tgt_mask.byte().unsqueeze(-2) & get_subsequent_mask(x)
         src_mask = src_mask.byte().unsqueeze(-2)
+        # print(get_subsequent_mask(x))
         for layer in self.layers:
             # print(f'x shape {x.shape}, memory shape {memory.shape}')
-            x = layer(x, memory, src_mask, tgt_mask)
+            x = layer(x, memory, tgt_mask, src_mask)
         return self.norm(x)
 
 

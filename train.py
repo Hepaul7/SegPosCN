@@ -16,8 +16,8 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
 from transformer.output_embeddings import get_output_embeddings, OutputEmbedder, PositionalEncoder
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-
-OUTPUT_SIZE = 33 * 4 + 3
+import csv
+OUTPUT_SIZE = 33 * 4 + 5
 
 
 def calculate_class_frequencies(labels, pad_idx):
@@ -33,6 +33,11 @@ def calculate_class_frequencies(labels, pad_idx):
 
 
 def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
+    with open('eval_model.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write the header
+        writer.writerow(['AvgLoss', 'Acc', 'F1'])
+
     eval_set = read_csv('data/CTB7/dev.tsv')
 
     eval_texts, eval_tags, _ = extract_sentences(eval_set)
@@ -88,10 +93,10 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
             all_masks.append(non_padding_mask)
 
             print(predicted_labels, batch_output_ids)
-            print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 64)} batch accuracy {batch_acc}')
+            print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 128)} batch accuracy {batch_acc}')
             batch_count += 1
         # Calculate average loss over all batches
-    avg_eval_loss = total_eval_loss / len(eval_dataset)
+    avg_eval_loss = total_eval_loss / (len(eval_dataset) / 128)
 
     # Remove padding token label IDs for metric calculation
     all_predictions = torch.cat(all_predictions)
@@ -106,9 +111,17 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     print(f"Evaluation Loss: {avg_eval_loss}")
     print(f"Accuracy: {accuracy}")
     print(f"F1 Score: {f1}")
+    with open('eval_model.csv', mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([avg_eval_loss, accuracy, f1])
 
 
 def train():
+    with open('model_metrics.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write the header
+        writer.writerow(['Epoch', 'Batch', 'AvgLoss', 'Loss'])
+
     print('running CTB7...\n')
     data = read_csv('data/CTB7/train.tsv')
 
@@ -135,7 +148,7 @@ def train():
     dataset = TensorDataset(input_ids, attention_masks, output_ids, output_masks)
     dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
-    num_epochs = 600
+    num_epochs = 10
     optimizer = AdamW(segpos_model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=10e-9)
     optimizer = ScheduledOptim(optimizer, 1, 768, 250)
     loss_function = CrossEntropyLoss(weight=class_weights)
@@ -158,6 +171,9 @@ def train():
             optimizer.step_and_update_lr()
 
             total_loss += loss.item()
+            with open('model_metrics.csv', mode='a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([epoch + 1, batch_count, total_loss/batch_count, loss.item()])
             print(f'epoch: {epoch}, batch: {batch_count} / {math.ceil(len(dataset) / 128)}, total_loss: {total_loss}, avg_loss: {total_loss/batch_count}', f'batch_loss: {loss.item()}')
         eval_epoch(segpos_model, model, loss_function, bert_tokenizer)
         torch.save(segpos_model.state_dict(), './model_state_dict.pth')

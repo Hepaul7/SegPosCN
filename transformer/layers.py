@@ -93,7 +93,6 @@ class DecoderLayer(nn.Module):
         m = enc_output
         # Self attention
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, self_attn_mask))
-
         # Encoder-Decoder attention
         x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_attn_mask))
 

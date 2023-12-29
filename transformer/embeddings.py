@@ -18,10 +18,13 @@ POS_tags = [
 
 BMES_tags = ["B", "M", "E", "S"]
 PAD = 0
-UNK = 100
+# UNK = 100
 CLS = 133
 SEP = 134
-MASK = 103
+# MASK = 103
+BOS = 135
+EOS = 136
+
 LIMIT = 64
 
 tag_to_id = {}
@@ -31,9 +34,13 @@ for i, pos_tag in enumerate(POS_tags):
     id_to_tag['PAD'] = PAD
     id_to_tag['CLS'] = CLS
     id_to_tag['SEP'] = SEP
-    tag_to_id[PAD] = 'PAD'
-    tag_to_id[CLS] = 'CLS'
-    tag_to_id[SEP] = 'SEP'
+    id_to_tag['BOS'] = BOS
+    id_to_tag['EOS'] = EOS
+    tag_to_id[PAD] = '[PAD]'
+    tag_to_id[CLS] = '[CLS]'
+    tag_to_id[SEP] = '[SEP]'
+    tag_to_id[BOS] = '<S>'
+    tag_to_id[EOS] = '<T>'
     for j, bmes_tag in enumerate(BMES_tags):
         tag = f"{bmes_tag}-{pos_tag}"
         tag_id = i * len(BMES_tags) + j + 1
@@ -154,18 +161,30 @@ def prepare_outputs(tags, max_len):
     :param max_len:
     :return:
     """
-    # TODO, FIX FROM 0x33 to 4x33 + 3
-    outputs = torch.zeros(len(tags), LIMIT, dtype=torch.long)
-    mask = torch.zeros(len(tags), LIMIT, dtype=torch.long)
-    for x in range(len(tags)):
-        if len(tags[x]) >= LIMIT - 2:
+    outputs = torch.zeros(len(tags), max_len, dtype=torch.long)
+    mask = torch.zeros(len(tags), max_len, dtype=torch.long)
+
+    for i, tag_seq in enumerate(tags):
+        # Check if the length of the tag sequence exceeds the limit
+        if len(tag_seq) >= max_len - 3:
             continue
-        outputs[x][0], mask[x][0] = CLS, 1
-        outputs[x][len(tags[x]) + 1], mask[x][len(tags[x]) + 1] = SEP, 1
-        for y in range(max_len):
-            if y < len(tags[x]):
-                outputs[x][y + 1], mask[x][y + 1] = tag_to_id[tags[x][y]], 1
-    # print('x', outputs[0], mask[0])
+
+        # Add CLS token at the beginning
+        outputs[i][0] = CLS
+        mask[i][0] = 1
+
+        # Right-shift tags and encode
+        for j, tag in enumerate(tag_seq):
+            outputs[i][j + 1] = tag_to_id[tag]
+            mask[i][j + 1] = 1
+
+        # Add SOS token at the start of the shifted sequence
+        outputs[i][1] = BOS
+
+        # Add SEP token at the end
+        outputs[i][len(tag_seq) + 1] = SEP
+        mask[i][len(tag_seq) + 1] = 1
+
     return outputs, mask
 
 
