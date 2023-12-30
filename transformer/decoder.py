@@ -4,7 +4,7 @@ CLS = '<s>'
 def get_subsequent_mask(seq):
     ''' For masking out the subsequent info. '''
     len_s = seq.size(1)
-    subsequent_mask = torch.triu(torch.ones((len_s, len_s), dtype=torch.uint8), diagonal=1)
+    subsequent_mask = torch.tril(torch.ones((len_s, len_s), dtype=torch.uint8))
     subsequent_mask = subsequent_mask.bool()
     return subsequent_mask.unsqueeze(0)
 
@@ -35,6 +35,7 @@ class Decoder(nn.Module):
         # print(f'output shape: {x.shape}, encoder_output shape: {memory.shape} ')
         tgt_mask = tgt_mask.byte().unsqueeze(-2) & get_subsequent_mask(x)
         src_mask = src_mask.byte().unsqueeze(-2)
+        # print(tgt_mask)
         # print(get_subsequent_mask(x))
         for layer in self.layers:
             # print(f'x shape {x.shape}, memory shape {memory.shape}')
