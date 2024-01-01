@@ -9,7 +9,9 @@ def clones(module, N):
 
 
 class LayerNorm(nn.Module):
-    """Construct a layer-norm module"""
+    """Construct a layer-norm module
+    TODO: Reference
+    """
 
     def __init__(self, features, eps=1e-6):
         super(LayerNorm, self).__init__()
@@ -27,6 +29,7 @@ class LayerNorm(nn.Module):
 class SublayerConnection(nn.Module):
     """
     A residual connection followed by a layer norm.
+    TODO: Reference
     """
 
     def __init__(self, size, dropout):
