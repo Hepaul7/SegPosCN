@@ -25,7 +25,7 @@ class Tagger(nn.Module):
         self.model = model
         self.model.eval()
 
-        # self.register_buffer('init_seq', torch.LongTensor([[trg_bos_idx]]))
+        self.register_buffer('init_seq', torch.LongTensor([[trg_bos_idx]]))
         self.register_buffer(
             'blank_seqs',
             torch.full((beam_size, max_seq_len), trg_pad_idx, dtype=torch.long))
@@ -37,6 +37,9 @@ class Tagger(nn.Module):
     def _model_decode(self, trg_output, enc_output, src_mask, trg_mask):
         output_embeddings = self.model.tgt_embedder(trg_output)
         output_embeddings = self.model.position(output_embeddings)
+        # print(output_embeddings.shape)
+        trg_mask = torch.tensor([[1]])
+        # print(trg_mask.shape)
         dec_output = self.model.decoder(output_embeddings, enc_output, src_mask, trg_mask.float())
         return F.softmax(self.model.output(dec_output), dim=1)
 
@@ -46,8 +49,9 @@ class Tagger(nn.Module):
         enc_output = self.model.encoder(src_embeddings, src_mask.float())
         # I don't know if this is okay, because I pass in 0 for all unknown vals
         # which is the PAD index, but maybe I can mutate the tensor?
-        init_seq = torch.zeros(enc_output.shape[0], enc_output.shape[1], dtype=torch.long)
-        init_seq[:, 0] = self.trg_bos_idx
+        # init_seq = torch.zeros(enc_output.shape[0], enc_output.shape[1], dtype=torch.long)
+        # init_seq[:, 0] = self.trg_bos_idx
+        init_seq = self.init_seq
         dec_output = self._model_decode(init_seq, enc_output, src_mask, trg_mask)
 
         best_k_probs, best_k_idx = dec_output[:, -1, :].topk(beam_size)
@@ -93,6 +97,7 @@ class Tagger(nn.Module):
                     _, ans_idx = scores.div(seq_lens.float() ** alpha).max(0)
                     ans_idx = ans_idx.item()
                     break
+        print(gen_seq)
         return gen_seq[ans_idx][:seq_lens[ans_idx]].tolist()
 
 
@@ -131,7 +136,7 @@ segpos_model = CWSPOSTransformer(encoder, decoder, output_size=OUTPUT_SIZE, d_mo
 print('loading state')
 segpos_model.load_state_dict(torch.load('model_state_dict.pth'))
 segpos_model.eval()
-tagger = Tagger(segpos_model, 64, 64, 0, 0, 133, 134)
+tagger = Tagger(segpos_model, 4, 64, 0, 0, 135, 134)
 
 eval_set = read_csv('data/CTB7/dev.tsv')
 #

@@ -9,15 +9,18 @@ import torch.nn.functional as F
 def attention(query, key, value, mask=None, dropout=None):
     """Compute 'Scaled Dot Product Attention'
     Ryan said the notation on the paper softmax(QK^T)V is bad"""
+    # print(query.shape, key.shape, value.shape)
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     # print(mask.shape, scores.shape)
     if mask is not None:
-        # print(scores.size(),mask.size())
+        # print(scores.shape, mask.shape)
+        # print(mask.shape)
         scores = scores.masked_fill(mask == 0, -1e9)
     p_attn = F.softmax(scores, dim=-1)
     if dropout is not None:
         p_attn = dropout(p_attn)
+    # print(p_attn.shape, value.shape)
     return torch.matmul(p_attn, value), p_attn
 
 
