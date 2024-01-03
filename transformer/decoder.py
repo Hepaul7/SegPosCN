@@ -31,7 +31,7 @@ class Decoder(nn.Module):
         :param tgt_mask: The mask for the target sequence.
         :return: torch.Tensor: The output of the decoder.
         """
-        assert src_mask.shape == tgt_mask.shape if src_mask is not None and tgt_mask is not None else True
+        # assert src_mask.shape == tgt_mask.shape if src_mask is not None and tgt_mask is not None else True
         # print(f'output shape: {x.shape}, encoder_output shape: {memory.shape} ')
         tgt_mask = tgt_mask.byte().unsqueeze(-2) & get_subsequent_mask(x)
         src_mask = src_mask.byte().unsqueeze(-2)
