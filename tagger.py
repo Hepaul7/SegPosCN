@@ -38,17 +38,17 @@ class Tagger(nn.Module):
         output_embeddings = self.model.tgt_embedder(trg_output)
         output_embeddings = self.model.position(output_embeddings)
         # print(output_embeddings.shape)
-        trg_mask = torch.tensor([[1]])
-        # print(trg_mask.shape)
+        # print('trgoutput shape', trg_output.shape)
+        trg_mask = torch.tensor([[1] * trg_output.shape[1]])
+        # print('trgmask shape', trg_mask.shape)
         dec_output = self.model.decoder(output_embeddings, enc_output, src_mask, trg_mask.float())
+        # print(F.softmax(dec_output, dim=1))
         return F.softmax(self.model.output(dec_output), dim=1)
 
     def _get_init_state(self, src_embeddings, src_mask, trg_mask):
         beam_size = self.beam_size
 
         enc_output = self.model.encoder(src_embeddings, src_mask.float())
-        # I don't know if this is okay, because I pass in 0 for all unknown vals
-        # which is the PAD index, but maybe I can mutate the tensor?
         # init_seq = torch.zeros(enc_output.shape[0], enc_output.shape[1], dtype=torch.long)
         # init_seq[:, 0] = self.trg_bos_idx
         init_seq = self.init_seq
@@ -56,7 +56,7 @@ class Tagger(nn.Module):
 
         best_k_probs, best_k_idx = dec_output[:, -1, :].topk(beam_size)
 
-        scores = torch.log(best_k_probs).view(beam_size)
+        scores = best_k_probs.view(beam_size)  # I removed torch.log
         gen_seq = self.blank_seqs.clone().detach()
         gen_seq[:, 1] = best_k_idx[0]
         enc_output = enc_output.repeat(beam_size, 1, 1)
@@ -66,7 +66,7 @@ class Tagger(nn.Module):
         assert len(scores.size()) == 1
         beam_size = self.beam_size
         best_k2_probs, best_k2_idx = dec_output[:, -1, :].topk(beam_size)
-        scores = torch.log(best_k2_probs).view(beam_size, -1) + scores.view(beam_size, 1)
+        scores = best_k2_probs.view(beam_size, -1) + scores.view(beam_size, 1)
         scores, best_k_idx_in_k2 = scores.view(-1).topk(beam_size)
         best_k_r_idxs, best_k_c_idxs = best_k_idx_in_k2 // beam_size, best_k_idx_in_k2 % beam_size
         best_k_idx = best_k2_idx[best_k_r_idxs, best_k_c_idxs]
@@ -81,12 +81,24 @@ class Tagger(nn.Module):
         max_seq_len, beam_size, alpha = self.max_seq_len, self.beam_size, self.alpha
         with torch.no_grad():
             enc_output, gen_seq, scores = self._get_init_state(src_embeddings, src_mask, trg_mask)
-
+            # print(gen_seq)
             ans_idx = 0
             for step in range(2, max_seq_len):
-                print(step)
+                # print(step)
+                # print('enc output', enc_output.shape, enc_output)
+                # print('enc output[0][0]', enc_output[0][0])
+                # print('enc output[1][0]', enc_output[1][0])
+                # print('src_mask', src_mask.shape, src_mask)
+                # print('trg_mask', trg_mask.shape, trg_mask)
+                # print('sentence length', src_mask.sum().item())
+                assert src_mask.sum().item() == trg_mask.sum().item()
                 dec_output = self._model_decode(gen_seq[:, :step], enc_output, src_mask, trg_mask[:, :step])
+                # print('dec output', dec_output.shape, dec_output)
+                # print('dec output[0][0]', dec_output[0][0])
+                # print('dec output[1][-2]', dec_output[1][0])
+                # print(gen_seq)
                 gen_seq, scores = self._get_the_best_score_and_idx(gen_seq, dec_output, scores, step)
+
                 # Check if all path finished
                 # -- locate the eos in the generated sequences
                 eos_locs = gen_seq == trg_eos_idx
@@ -97,20 +109,15 @@ class Tagger(nn.Module):
                     _, ans_idx = scores.div(seq_lens.float() ** alpha).max(0)
                     ans_idx = ans_idx.item()
                     break
-        print(gen_seq)
-        return gen_seq[ans_idx][:seq_lens[ans_idx]].tolist()
+        return gen_seq[ans_idx][:seq_lens[ans_idx]]
 
 
 """BELOW FOR TESTING PURPOSES ONLY"""
 
 from torch.utils.data import TensorDataset, DataLoader
-
-from transformer.embeddings import *
 from transformer.encoder import *
 from transformer.decoder import *
-from transformer.output_embeddings import *
 from models import *
-import random
 
 OUTPUT_SIZE = 33 * 4 + 5
 
@@ -136,9 +143,9 @@ segpos_model = CWSPOSTransformer(encoder, decoder, output_size=OUTPUT_SIZE, d_mo
 print('loading state')
 segpos_model.load_state_dict(torch.load('model_state_dict.pth'))
 segpos_model.eval()
-tagger = Tagger(segpos_model, 4, 64, 0, 0, 135, 134)
+tagger = Tagger(segpos_model, 4, 64, 0, 0, 133, 134)
 
-eval_set = read_csv('data/CTB7/dev.tsv')
+eval_set = read_csv('data/CTB7/train.tsv')
 #
 eval_texts, eval_tags, _ = extract_sentences(eval_set)
 # print(eval_texts)
@@ -146,6 +153,11 @@ eval_input_ids, eval_attention_masks = prepare(eval_texts, bert_tokenizer, 64)
 eval_output_ids, eval_output_masks = prepare_outputs(eval_tags, 64)
 eval_dataset = TensorDataset(eval_input_ids, eval_attention_masks, eval_output_ids, eval_output_masks)
 eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
+all_predictions = []
+all_targets = []
+all_masks = []
+batch_count = 1
+
 with torch.no_grad():  # No gradients needed for evaluation
     for batch in eval_dataloader:
         batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
@@ -153,5 +165,34 @@ with torch.no_grad():  # No gradients needed for evaluation
 
         # tagger._get_init_state(input_embeddings, batch_attention_masks, batch_output_masks)
         predictions = tagger.generate(input_embeddings, batch_attention_masks, batch_output_masks)
-        print(predictions)
-        print(batch_output_ids)
+        predicted_labels = tagger.generate(input_embeddings, batch_attention_masks, batch_output_masks)
+
+        # loss = loss_function(predictions.view(-1, predictions.size(-1)).float(), batch_output_ids.view(-1).long())
+        # predicted_labels = torch.argmax(predictions, dim=2)
+        batch_output_ids = batch_output_ids
+        predicted_labels = predicted_labels.clone() * batch_attention_masks
+        batch_output_ids = batch_output_ids.clone() * batch_output_masks
+        predicted_labels = predicted_labels.clone().float()
+        batch_output_ids = batch_output_ids.clone().float()
+        predicted_labels.requires_grad = False
+        # total_eval_loss += loss.item()
+
+        predicted_labels_flat = predicted_labels.view(-1)
+        batch_output_ids_flat = batch_output_ids.view(-1)
+        non_padding_mask = batch_output_ids_flat != 0
+        predicted_non_padding = predicted_labels_flat[non_padding_mask]
+        targets_non_padding = batch_output_ids_flat[non_padding_mask]
+        correct_predictions = (predicted_non_padding == targets_non_padding).sum()
+        accuracy = correct_predictions.float() / targets_non_padding.size(0)
+
+        batch_acc = accuracy.item()
+        all_predictions.append(predicted_labels_flat[non_padding_mask])
+
+        all_targets.append(batch_output_ids_flat[non_padding_mask])
+        all_masks.append(non_padding_mask)
+
+        print(predicted_labels, batch_output_ids)
+        print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 1)} batch accuracy {batch_acc}')
+        batch_count += 1
+        # print(predictions)
+        # print(batch_output_ids)

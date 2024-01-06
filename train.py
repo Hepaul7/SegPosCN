@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from transformer.output_embeddings import get_output_embeddings, OutputEmbedder, PositionalEncoder
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 import csv
+from tagger import Tagger
 OUTPUT_SIZE = 33 * 4 + 5
 
 
@@ -30,7 +31,7 @@ def calculate_class_frequencies(labels, pad_idx):
 def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     with open('eval_model.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['AvgLoss', 'Acc', 'F1'])
+        writer.writerow(['Acc', 'F1'])
 
     eval_set = read_csv('data/CTB7/dev.tsv')
 
@@ -38,9 +39,10 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     eval_input_ids, eval_attention_masks = prepare(eval_texts, bert_tokenizer, 64)
     eval_output_ids, eval_output_masks = prepare_outputs(eval_tags, 64)
     eval_dataset = TensorDataset(eval_input_ids, eval_attention_masks, eval_output_ids, eval_output_masks)
-    eval_dataloader = DataLoader(eval_dataset, batch_size=128, shuffle=True)
+    eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
 
     segpos_model.eval()
+    tagger = Tagger(segpos_model, 4, 64, 0, 0, 133, 134)
     total_eval_loss = 0
     all_predictions = []
     all_targets = []
@@ -51,18 +53,19 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
             batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
             input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
 
-            predictions = segpos_model(input_embeddings, batch_attention_masks, batch_output_ids, batch_output_masks)
+            # predictions = segpos_model(input_embeddings, batch_attention_masks, batch_output_ids, batch_output_masks)
             # loss = loss_function(predictions.view(-1, OUTPUT_SIZE), batch_output_ids.view(-1))
+            predicted_labels = tagger.generate(input_embeddings, batch_attention_masks, batch_output_masks)
 
-            loss = loss_function(predictions.view(-1, predictions.size(-1)).float(), batch_output_ids.view(-1).long())
-            predicted_labels = torch.argmax(predictions, dim=2)
+            # loss = loss_function(predictions.view(-1, predictions.size(-1)).float(), batch_output_ids.view(-1).long())
+            # predicted_labels = torch.argmax(predictions, dim=2)
             batch_output_ids = batch_output_ids
             predicted_labels = predicted_labels.clone() * batch_attention_masks
             batch_output_ids = batch_output_ids.clone() * batch_output_masks
             predicted_labels = predicted_labels.clone().float()
             batch_output_ids = batch_output_ids.clone().float()
             predicted_labels.requires_grad = True
-            total_eval_loss += loss.item()
+            # total_eval_loss += loss.item()
 
             predicted_labels_flat = predicted_labels.view(-1)
             batch_output_ids_flat = batch_output_ids.view(-1)
@@ -81,7 +84,7 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
             print(predicted_labels, batch_output_ids)
             print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 128)} batch accuracy {batch_acc}')
             batch_count += 1
-    avg_eval_loss = total_eval_loss / (len(eval_dataset) / 128)
+    # avg_eval_loss = total_eval_loss / (len(eval_dataset) / 128)
 
     all_predictions = torch.cat(all_predictions)
     all_targets = torch.cat(all_targets)
@@ -92,12 +95,12 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     accuracy = correct_predictions.float() / all_targets.size(0)
     accuracy = accuracy.item()
 
-    print(f"Evaluation Loss: {avg_eval_loss}")
+    # print(f"Evaluation Loss: {avg_eval_loss}")
     print(f"Accuracy: {accuracy}")
     print(f"F1 Score: {f1}")
     with open('eval_model.csv', mode='a', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow([avg_eval_loss, accuracy, f1])
+        writer.writerow([accuracy, f1])
 
 
 def train():
@@ -114,6 +117,7 @@ def train():
 
     input_ids, attention_masks = prepare(texts, bert_tokenizer, 64)  # includes BOS/EOS
     output_ids, output_masks = prepare_outputs(tags, max_len=64)  # includes BOS/EOS
+    print(f'output masks 1: {output_masks}')
     model = load_model('bert-base-chinese')
     for param in model.parameters():
         param.requires_grad = False
@@ -141,15 +145,19 @@ def train():
         total_loss = 0
         batch_count = 0
         for batch in dataloader:
+            optimizer.zero_grad()
+
             batch_count += 1
             batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
             input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
+            print(batch_attention_masks[0])
+            print(batch_attention_masks[1])
+
             predictions = segpos_model(input_embeddings, batch_attention_masks, batch_output_ids, batch_output_masks)
             predicted_labels = torch.argmax(predictions, dim=2)
             print(predicted_labels)
             print(batch_output_ids)
             loss = loss_function(predictions.view(-1, predictions.size(-1)).float(), batch_output_ids.view(-1).long())
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step_and_update_lr()
 

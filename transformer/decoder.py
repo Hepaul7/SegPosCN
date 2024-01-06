@@ -34,8 +34,16 @@ class Decoder(nn.Module):
         # assert src_mask.shape == tgt_mask.shape if src_mask is not None and tgt_mask is not None else True
         # print(f'output shape: {x.shape}, encoder_output shape: {memory.shape} ')
         # print(x.shape, memory.shape, src_mask.shape, tgt_mask.shape)
+        # print(f'Subsequent Mask: {get_subsequent_mask(x).shape} \n')
+        # print(f'Output Mask: {tgt_mask.shape} \n')
         tgt_mask = tgt_mask.byte().unsqueeze(-2) & get_subsequent_mask(x)
+        # print(f'With Subsequent: {tgt_mask.shape} \n')
+        # print(tgt_mask)
+        # print(tgt_mask.shape)
+        # print(f'input mask: {src_mask.shape} \n')
         src_mask = src_mask.byte().unsqueeze(-2)
+
+        # print(f'input mask: {src_mask.shape} \n')
         # print(tgt_mask)
         # print(get_subsequent_mask(x))
         for layer in self.layers:
