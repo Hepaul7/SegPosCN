@@ -55,7 +55,7 @@ class Tagger(nn.Module):
         dec_output = self._model_decode(init_seq, src_embeddings, src_mask, trg_mask)
         # print(dec_output.shape)
         best_k_probs, best_k_idx = dec_output[:, -1, :].topk(beam_size)
-        print(best_k_probs, best_k_idx)
+        # print(best_k_probs, best_k_idx)
 
         scores = best_k_probs.view(beam_size)  # I removed torch.log
         gen_seq = self.blank_seqs.clone().detach()

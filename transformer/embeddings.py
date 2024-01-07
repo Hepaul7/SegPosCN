@@ -47,8 +47,8 @@ for i, pos_tag in enumerate(POS_tags):
         tag_id = i * len(BMES_tags) + j + 1
         tag_to_id[tag] = tag_id
         id_to_tag[tag_id] = tag
-print(len(tag_to_id.keys()))
-print(tag_to_id)
+# print(len(tag_to_id.keys()))
+# print(tag_to_id)
 
 
 def read_csv(path: str) -> List[List[str]]:
@@ -151,7 +151,7 @@ def prepare(texts: List[str], tokenizer: BertTokenizer, max_len: int) -> [torch.
     input_ids = torch.cat(input_ids, dim=0)
     attention_masks = torch.cat(attention_masks, dim=0)
     print(f'oov rate: {oov / total_len} oov: {oov}, total: {total_len}')
-    print(vocab)
+    # print(vocab)
     return input_ids, attention_masks
 
 
