@@ -31,16 +31,17 @@ tag_to_id = {}
 id_to_tag = {}
 
 for i, pos_tag in enumerate(POS_tags):
-    id_to_tag['PAD'] = PAD
-    id_to_tag['CLS'] = CLS
-    id_to_tag['SEP'] = SEP
-    id_to_tag['BOS'] = BOS
-    id_to_tag['EOS'] = EOS
-    tag_to_id[PAD] = '[PAD]'
-    tag_to_id[CLS] = '[CLS]'
-    tag_to_id[SEP] = '[SEP]'
-    tag_to_id[BOS] = '<S>'
-    tag_to_id[EOS] = '<T>'
+    tag_to_id['PAD'] = PAD
+    tag_to_id['CLS'] = CLS
+    tag_to_id['SEP'] = SEP
+    tag_to_id['BOS'] = BOS
+    tag_to_id['EOS'] = EOS
+
+    id_to_tag[PAD] = '[PAD]'
+    id_to_tag[CLS] = '[CLS]'
+    id_to_tag[SEP] = '[SEP]'
+    id_to_tag[BOS] = '<S>'
+    id_to_tag[EOS] = '<T>'
     for j, bmes_tag in enumerate(BMES_tags):
         tag = f"{bmes_tag}-{pos_tag}"
         tag_id = i * len(BMES_tags) + j + 1
