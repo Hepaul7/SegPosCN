@@ -121,12 +121,12 @@ def train():
     output_ids, output_masks = prepare_outputs(tags, max_len=64)  # includes BOS/EOS
     print(f'output masks 1: {output_masks}')
     model = load_model('bert-base-chinese')
-    for param in model.parameters():
-        param.requires_grad = False
+    # for param in model.parameters():
+    #     param.requires_grad = False
 
-    class_counts = calculate_class_frequencies(output_ids, PAD)
-    class_weights = 1.0 / class_counts
-    class_weights[PAD] = 0
+    # class_counts = calculate_class_frequencies(output_ids, PAD)
+    # class_weights = 1.0 / class_counts
+    # class_weights[PAD] = 0
     encoder = make_encoder()
     decoder = make_decoder()
     output_embedder = OutputEmbedder(768, 768)
@@ -139,9 +139,10 @@ def train():
     dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
     num_epochs = 50
-    optimizer = AdamW(segpos_model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=10e-9)
+    combined_parameters = list(model.parameters()) + list(segpos_model.parameters())
+    optimizer = AdamW(combined_parameters, lr=5e-5, betas=(0.9, 0.98), eps=10e-9)
     optimizer = ScheduledOptim(optimizer, 1, 768, 250)
-    loss_function = CrossEntropyLoss(weight=class_weights)
+    loss_function = CrossEntropyLoss()
 
     for epoch in range(num_epochs):
         segpos_model.train()
