@@ -42,7 +42,6 @@ class Decoder(nn.Module):
         # print(tgt_mask.shape)
         # print(f'input mask: {src_mask.shape} \n')
         src_mask = src_mask.byte().unsqueeze(-2)
-
         # print(f'input mask: {src_mask.shape} \n')
         # print(tgt_mask)
         # print(get_subsequent_mask(x))
@@ -52,7 +51,7 @@ class Decoder(nn.Module):
         return self.norm(x)
 
 
-def make_decoder(N=12, d_model=768, d_ff=3072, h=12, dropout=0.1):
+def make_decoder(N=3, d_model=768, d_ff=1024, h=8, dropout=0.1):
     c = copy.deepcopy
     self_attn = MultiHeadAttention(h=h, d_model=d_model)
     src_attn = MultiHeadAttention(h=h, d_model=d_model)

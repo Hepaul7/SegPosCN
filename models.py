@@ -24,8 +24,9 @@ class CWSPOSTransformer(nn.Module):
         self.decoder = decoder
         self.d_model = d_model
         self.output_size = output_size
+        self.dim_alignment = nn.Linear(2 * 768, 768)
 
-        # Output projection layer -> 33 x 4 + 3 (we dont need beam search, output length known)
+        # Output projection layer -> 33 x 4 + 5
         self.output = nn.Linear(d_model, output_size)
 
     def forward(self, input_embeddings, attention_mask, output_tensor, decoder_attention_mask):
@@ -43,11 +44,18 @@ class CWSPOSTransformer(nn.Module):
         decoder_attention_mask = decoder_attention_mask.clone()
         output_embeddings = self.tgt_embedder(output_tensor)
         output_embeddings = self.position(output_embeddings)
+
+        # input, output embeddings shape both [batch_size x max_len x embedding_dim]
+        # concat character t's embeddings with tag t-1's embeddings,
+        # results in shape [batch_size x max_len x 2 embedding_dim]
+        output_embeddings = torch.cat([input_embeddings.clone(), output_embeddings.clone()], dim=-1)
+        output_embeddings = self.dim_alignment(output_embeddings.clone())
+
         # Pass embeddings through the encoder
-        encoder_output = self.encoder(input_embeddings, attention_mask.float())
+        # encoder_output = self.encoder(input_embeddings, attention_mask.float())
         # subsequent mask applied in decoder layer
-        assert output_embeddings.shape == encoder_output.shape
-        decoder_output = self.decoder(output_embeddings, encoder_output, attention_mask, decoder_attention_mask.float())
+        # assert output_embeddings.shape == encoder_output.shape
+        decoder_output = self.decoder(output_embeddings, input_embeddings, attention_mask, decoder_attention_mask.float())
         output = self.output(decoder_output)
 
         return output

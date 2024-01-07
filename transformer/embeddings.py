@@ -173,13 +173,12 @@ def prepare_outputs(tags, max_len):
         outputs[i][0] = CLS
         mask[i][0] = 1
 
-        # Right-shift tags and encode
         for j, tag in enumerate(tag_seq):
             outputs[i][j + 1] = tag_to_id[tag]
             mask[i][j + 1] = 1
 
-        # Add SOS token at the start of the shifted sequence
-        outputs[i][1] = BOS
+        # # Add SOS token at the start of the shifted sequence
+        # outputs[i][1] = BOS
 
         # Add SEP token at the end
         outputs[i][len(tag_seq) + 1] = SEP

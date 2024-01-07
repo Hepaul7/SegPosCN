@@ -56,7 +56,7 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
             # predictions = segpos_model(input_embeddings, batch_attention_masks, batch_output_ids, batch_output_masks)
             # loss = loss_function(predictions.view(-1, OUTPUT_SIZE), batch_output_ids.view(-1))
             predicted_labels = tagger.generate(input_embeddings, batch_attention_masks, batch_output_masks)
-
+            print(predicted_labels.shape)
             # loss = loss_function(predictions.view(-1, predictions.size(-1)).float(), batch_output_ids.view(-1).long())
             # predicted_labels = torch.argmax(predictions, dim=2)
             batch_output_ids = batch_output_ids
@@ -83,6 +83,8 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
 
             print(predicted_labels, batch_output_ids)
             print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 128)} batch accuracy {batch_acc}')
+            if batch_count == 67:
+                break
             batch_count += 1
     # avg_eval_loss = total_eval_loss / (len(eval_dataset) / 128)
 
@@ -132,10 +134,11 @@ def train():
     segpos_model = CWSPOSTransformer(encoder, decoder, output_size=OUTPUT_SIZE, d_model=768,
                                      output_embedder=output_embedder, positional_encoder=positional_encoder)
 
+
     dataset = TensorDataset(input_ids, attention_masks, output_ids, output_masks)
     dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
-    num_epochs = 10
+    num_epochs = 50
     optimizer = AdamW(segpos_model.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=10e-9)
     optimizer = ScheduledOptim(optimizer, 1, 768, 250)
     loss_function = CrossEntropyLoss(weight=class_weights)
@@ -150,14 +153,16 @@ def train():
             batch_count += 1
             batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
             input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
-            print(batch_attention_masks[0])
-            print(batch_attention_masks[1])
 
             predictions = segpos_model(input_embeddings, batch_attention_masks, batch_output_ids, batch_output_masks)
             predicted_labels = torch.argmax(predictions, dim=2)
             print(predicted_labels)
-            print(batch_output_ids)
-            loss = loss_function(predictions.view(-1, predictions.size(-1)).float(), batch_output_ids.view(-1).long())
+            # print(batch_output_ids)
+            loss = loss_function(predictions.view(-1, predictions.size(-1)).float(),
+                                 torch.cat([batch_output_ids[:, 1:], torch.zeros(batch_output_ids.size(0), 1).long()], dim=1).view(-1).long())
+            # print(predictions.view(-1, predictions.size(-1)).float())
+            print(torch.cat([batch_output_ids[:, 1:], torch.zeros(batch_output_ids.size(0), 1).long()], dim=1).view(-1).long())
+
             loss.backward()
             optimizer.step_and_update_lr()
 
@@ -165,9 +170,10 @@ def train():
             with open('model_metrics.csv', mode='a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow([epoch + 1, batch_count, total_loss/batch_count, loss.item()])
+
             print(f'epoch: {epoch}, batch: {batch_count} / {math.ceil(len(dataset) / 128)}, total_loss: {total_loss}, avg_loss: {total_loss/batch_count}', f'batch_loss: {loss.item()}')
-        eval_epoch(segpos_model, model, loss_function, bert_tokenizer)
         torch.save(segpos_model.state_dict(), './model_state_dict.pth')
+        eval_epoch(segpos_model, model, loss_function, bert_tokenizer)
     return segpos_model, model
 
 

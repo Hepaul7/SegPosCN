@@ -30,7 +30,7 @@ class Encoder(nn.Module):
         return self.norm(x)
 
 
-def make_encoder(N=12, d_model=768, d_ff=3072, h=12, dropout=0.1):
+def make_encoder(N=3, d_model=768, d_ff=1024, h=8, dropout=0.1):
     c = copy.deepcopy
     attn = MultiHeadAttention(h=h, d_model=d_model)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
