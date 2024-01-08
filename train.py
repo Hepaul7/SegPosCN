@@ -28,12 +28,17 @@ def calculate_class_frequencies(labels, pad_idx):
     return class_counts
 
 
-def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
+def eval_epoch(segpos_model, model, loss_function, bert_tokenizer, ctb_ver):
     with open('eval_model.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Acc', 'F1'])
 
-    eval_set = read_csv('data/CTB7/dev.tsv')
+    if ctb_ver == 7:
+        eval_set = read_csv('data/CTB7/dev.tsv')
+    elif ctb_ver == 9:
+        eval_set = read_csv('data/CTB9/dev.tsv')
+    else:
+        raise FileNotFoundError
 
     eval_texts, eval_tags, _ = extract_sentences(eval_set)
     eval_input_ids, eval_attention_masks = prepare(eval_texts, bert_tokenizer, 64)
@@ -82,8 +87,10 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
             all_masks.append(non_padding_mask)
 
             print(predicted_labels, batch_output_ids)
-            print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 128)} batch accuracy {batch_acc}')
-            if batch_count == 67:
+            # print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 128)} batch accuracy {batch_acc}')
+            print(f'batch {batch_count} / 100 batch accuracy {batch_acc}')
+
+            if batch_count == 100:
                 break
             batch_count += 1
     # avg_eval_loss = total_eval_loss / (len(eval_dataset) / 128)
@@ -103,15 +110,17 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer):
     with open('eval_model.csv', mode='a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([accuracy, f1])
+    return accuracy, f1
 
 
-def train():
-    with open('model_metrics.csv', mode='w', newline='') as file:
+def train(ctb_ver: int):
+    assert ctb_ver in {7, 9}
+    with open(f'model_metrics{ctb_ver}', mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Epoch', 'Batch', 'AvgLoss', 'Loss'])
 
-    print('running CTB7...\n')
-    data = read_csv('data/CTB7/train.tsv')
+    print(f'running CTB{ctb_ver}...\n')
+    data = read_csv(f'data/CTB{ctb_ver}/train.tsv')
 
     texts, tags, max_len = extract_sentences(data)
 
@@ -119,14 +128,7 @@ def train():
 
     input_ids, attention_masks = prepare(texts, bert_tokenizer, 64)  # includes BOS/EOS
     output_ids, output_masks = prepare_outputs(tags, max_len=64)  # includes BOS/EOS
-    print(f'output masks 1: {output_masks}')
     model = load_model('bert-base-chinese')
-    # for param in model.parameters():
-    #     param.requires_grad = False
-
-    # class_counts = calculate_class_frequencies(output_ids, PAD)
-    # class_weights = 1.0 / class_counts
-    # class_weights[PAD] = 0
     encoder = make_encoder()
     decoder = make_decoder()
     output_embedder = OutputEmbedder(768, 768)
@@ -138,7 +140,8 @@ def train():
     dataset = TensorDataset(input_ids, attention_masks, output_ids, output_masks)
     dataloader = DataLoader(dataset, batch_size=128, shuffle=True)
 
-    num_epochs = 50
+    num_epochs = 12
+    curr_f1 = 0
     combined_parameters = list(model.parameters()) + list(segpos_model.parameters())
     optimizer = AdamW(combined_parameters, lr=5e-5, betas=(0.9, 0.98), eps=10e-9)
     optimizer = ScheduledOptim(optimizer, 1, 768, 250)
@@ -168,14 +171,17 @@ def train():
             optimizer.step_and_update_lr()
 
             total_loss += loss.item()
-            with open('model_metrics.csv', mode='a', newline='') as file:
+            with open(f'model_metrics{ctb_ver}', mode='a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow([epoch + 1, batch_count, total_loss/batch_count, loss.item()])
 
             print(f'epoch: {epoch}, batch: {batch_count} / {math.ceil(len(dataset) / 128)}, total_loss: {total_loss}, avg_loss: {total_loss/batch_count}', f'batch_loss: {loss.item()}')
-        torch.save(segpos_model.state_dict(), './model_state_dict.pth')
-        eval_epoch(segpos_model, model, loss_function, bert_tokenizer)
+
+        acc, f1 = eval_epoch(segpos_model, model, loss_function, bert_tokenizer, ctb_ver)
+        if f1 > curr_f1:
+            torch.save(segpos_model.state_dict(), f'./model_state_dict{ctb_ver}')
+            curr_f1 = f1
     return segpos_model, model
 
 
-segpos_model, bert_model = train()
+segpos_model, bert_model = train(9)

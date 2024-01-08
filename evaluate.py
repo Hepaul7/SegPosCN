@@ -33,7 +33,7 @@ segpos_model.load_state_dict(torch.load('model_state_dict.pth'))
 segpos_model.eval()
 tagger = Tagger(segpos_model, 4, 64, 0, 0, 133, 134)
 
-eval_set = read_csv('data/CTB7/train.tsv')
+eval_set = read_csv('data/CTB7/dev.tsv')
 #
 eval_texts, eval_tags, _ = extract_sentences(eval_set)
 # print(eval_texts)
@@ -50,6 +50,10 @@ with torch.no_grad():  # No gradients needed for evaluation
     total_batch = 0
     total_cws = 0
     total_pos = 0
+    all_cws_pred = []
+    all_pos_pred = []
+    all_cws_targ = []
+    all_pos_targ = []
     for batch in eval_dataloader:
         batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
         input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
@@ -88,10 +92,6 @@ with torch.no_grad():  # No gradients needed for evaluation
         total = 0
         correct_seg = 0
         correct_pos = 0
-        all_cws_pred = []
-        all_pos_pred = []
-        all_cws_targ = []
-        all_pos_targ = []
         for i in range(len(predicted_labels)):
             tag = id_to_tag[predicted_labels[i].item()]
             targ_tag = id_to_tag[batch_output_ids[0][i].item()]
@@ -117,11 +117,7 @@ with torch.no_grad():  # No gradients needed for evaluation
         total_pos += pos_acc
 
         print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 1)} batch accuracy {batch_acc} CWS acc {seg_acc} POS acc {pos_acc}')
-        if batch_count == 10:
-            break
         batch_count += 1
-
-
         # print(predictions)
     print(f'dev set acc {total_batch / batch_count}, dev CWS acc {total_cws / batch_count} dev POS acc {total_pos / batch_count}')
     all_predictions = torch.cat(all_predictions)

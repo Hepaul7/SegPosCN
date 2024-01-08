@@ -5,8 +5,10 @@ import torch
 from transformers import BertTokenizer, BertModel
 from typing import List
 from constants import *
+import sys
 
 import csv
+csv.field_size_limit(sys.maxsize)
 
 BERT_MODEL_NAME = 'bert-base-chinese'
 
@@ -84,7 +86,7 @@ def extract_sentences(data: List[List[str]]) -> (List[str], List[List[str]], int
     count_lim = 0
     for ls in data:
         if len(ls) > 0:
-            if any(substring in ls[1] for substring in {'URL', 'X', 'BULLET'}):
+            if any(substring in ls[1] for substring in {'URL', 'X', 'BULLET', 'NOI', '-2', '-1', 'EM', 'IC'}):
                 continue
             curr += ls[0]
             if 'SHORT' in ls[1]:
