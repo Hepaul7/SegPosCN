@@ -184,4 +184,5 @@ def train(ctb_ver: int):
     return segpos_model, model
 
 
-segpos_model, bert_model = train(9)
+ver = int(input('Enter a CTB Version to Train (7, 9): '))
+segpos_model, bert_model = train(ver)
