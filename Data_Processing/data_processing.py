@@ -1,7 +1,12 @@
+"""
+ Based From: https://github.com/SVAIGBA/TwASP/blob/master/data_preprocessing/data_preprocessing.py
+ with slight modifications
+"""
+
 import os
 import re
 from os import path
-# TODO, Reference
+
 
 OUTPUT_DIR = '../data'
 if not path.exists(OUTPUT_DIR):
@@ -344,3 +349,10 @@ class CTB9(object):
                 f.write('\n')
 
         # print(label2id.keys())
+
+
+ctb7 = CTB7()
+ctb9 = CTB9()
+ctb7.process()
+ctb9.process()
+

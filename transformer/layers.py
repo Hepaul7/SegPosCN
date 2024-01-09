@@ -10,7 +10,7 @@ def clones(module, N):
 
 class LayerNorm(nn.Module):
     """Construct a layer-norm module
-    TODO: Reference
+    Credits: https://github.com/acphile/MCCWS/blob/master/transformer.py
     """
 
     def __init__(self, features, eps=1e-6):
@@ -29,7 +29,7 @@ class LayerNorm(nn.Module):
 class SublayerConnection(nn.Module):
     """
     A residual connection followed by a layer norm.
-    TODO: Reference
+    Credits: https://github.com/acphile/MCCWS/blob/master/transformer.py
     """
 
     def __init__(self, size, dropout):
