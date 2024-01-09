@@ -33,12 +33,7 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer, ctb_ver):
         writer = csv.writer(file)
         writer.writerow(['Acc', 'F1'])
 
-    if ctb_ver == 7:
-        eval_set = read_csv('data/CTB7/dev.tsv')
-    elif ctb_ver == 9:
-        eval_set = read_csv('data/CTB9/dev.tsv')
-    else:
-        raise FileNotFoundError
+    eval_set = read_csv(f'data/CTB{ctb_ver}/dev.tsv')
 
     eval_texts, eval_tags, _ = extract_sentences(eval_set)
     eval_input_ids, eval_attention_masks = prepare(eval_texts, bert_tokenizer, 64)
@@ -114,7 +109,7 @@ def eval_epoch(segpos_model, model, loss_function, bert_tokenizer, ctb_ver):
 
 
 def train(ctb_ver: int):
-    assert ctb_ver in {7, 9}
+    assert ctb_ver in {5, 6, 7, 9}
     with open(f'model_metrics{ctb_ver}', mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Epoch', 'Batch', 'AvgLoss', 'Loss'])
@@ -184,5 +179,5 @@ def train(ctb_ver: int):
     return segpos_model, model
 
 
-ver = int(input('Enter a CTB Version to Train (7, 9): '))
+ver = int(input('Enter a CTB Version to Train (5, 6, 7, 9): '))
 segpos_model, bert_model = train(ver)

@@ -18,6 +18,7 @@ bert_tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
 input_ids, attention_masks = prepare(texts, bert_tokenizer, 64)  # includes BOS/EOS
 output_ids, output_masks = prepare_outputs(tags, max_len=64)  # includes BOS/EOS
 model = load_model('bert-base-chinese')
+# model.load_state_dict(torch.load('bert_state_dict9-2'))
 for param in model.parameters():
     param.requires_grad = False
 
@@ -56,6 +57,11 @@ with torch.no_grad():  # No gradients needed for evaluation
     all_pos_targ = []
     for batch in eval_dataloader:
         batch_input_ids, batch_attention_masks, batch_output_ids, batch_output_masks = batch
+        batch_output_ids_flat = batch_output_ids.view(-1)
+        non_padding_mask = batch_output_ids_flat != 0
+        if len(batch_output_ids_flat[non_padding_mask]) < 40:
+            continue
+        print(len(batch_output_ids_flat[non_padding_mask]))
         input_embeddings = get_bert_embeddings(model, batch_input_ids, batch_attention_masks)
 
         # tagger._get_init_state(input_embeddings, batch_attention_masks, batch_output_masks)
@@ -90,6 +96,7 @@ with torch.no_grad():  # No gradients needed for evaluation
         # print(predicted_labels, batch_output_ids)
         # loop through all predictions to get Segmentation accuracy and POS accuracy
         total = 0
+        total_pos_given_cws = 0
         correct_seg = 0
         correct_pos = 0
         for i in range(len(predicted_labels)):
@@ -103,18 +110,20 @@ with torch.no_grad():  # No gradients needed for evaluation
                     t_seg, t_pos = targ[0], targ[1]
                     if seg == t_seg:
                         correct_seg += 1
-                    if pos == t_pos:
-                        correct_pos += 1
+                        if pos == t_pos:    # check POS accuracy GIVEN CWS is correct
+                            correct_pos += 1
+                        all_pos_pred.append(pos)
+                        all_pos_targ.append(t_pos)
+                        total_pos_given_cws += 1
                     all_cws_pred.append(seg)
                     all_cws_targ.append(t_seg)
-                    all_pos_pred.append(pos)
-                    all_pos_targ.append(t_pos)
+
                 total += 1
         seg_acc = correct_seg / total if correct_seg > 0 and total > 0 else batch_acc
-        pos_acc = correct_pos / total if correct_pos > 0 and total > 0 else batch_acc
+        pos_acc = correct_pos / total_pos_given_cws if correct_pos > 0 and total_pos_given_cws > 0 else None
         total_batch += batch_acc
         total_cws += seg_acc
-        total_pos += pos_acc
+        total_pos = total_pos + pos_acc if pos_acc else total_pos
 
         print(f'batch {batch_count} / {math.ceil(len(eval_dataset) / 1)} batch accuracy {batch_acc} CWS acc {seg_acc} POS acc {pos_acc}')
         batch_count += 1
