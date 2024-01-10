@@ -2,8 +2,6 @@
 This is the code accompanying my research project paper on Joint Chinese Word Segmentation and Part-of-Speech Tagging with the Transformer.
 First, check out requirements.txt
 
-This will allow you to write any sentence and see how the model works.
-
 To train, you need to obtain the data yourself first from the Penn Chinese Treebank (CTB7, CTB9). Specific Instructions on data processing can be found under Data_Processing.
 Once you obtain the data and followed the instructions under Data_Processing, you can run the following. This will clean all the data in a form we want for training, you will be prompted to 
 select a version to train. 
