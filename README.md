@@ -4,11 +4,7 @@ First, check out requirements.txt
 
 To train, you need to obtain the data yourself first from the Penn Chinese Treebank (CTB7, CTB9). Specific Instructions on data processing can be found under Data_Processing.
 Once you obtain the data and followed the instructions under Data_Processing, you can run the following. This will clean all the data in a form we want for training, you will be prompted to 
-select a version to train. 
-```shell
-$ chmod 700 run_train.sh     
-$ ./run_train.sh   
-```
+select a version to train (run  `run_train.sh`).
 To evaluate the model, you can run (but you may have to manually change the code **for now**, if you want to evaluate different versions)
 ```shell
 $ python3 evaluate.py
